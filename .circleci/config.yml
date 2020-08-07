@@ -161,6 +161,7 @@ findtests: &findtests
     working_directory: ~/ParlAI
     name: Find tests to run
     command: |
+      mkdir -p ~/ParlAI/data/models
       python -m pytest -m unit --collect-only | grep '<' | sort > teststorun.txt
       cat teststorun.txt
 
