@@ -163,7 +163,7 @@ findtests: &findtests
     name: Find tests to run
     command: |
       mkdir -p ~/ParlAI/data/models
-      python -m pytest -m unit --collect-only | grep '<' | sort > teststorun.txt
+      python -m pytest -m unit --collect-only | grep '<'  | sed "s/^ *//" > teststorun.txt
       cat teststorun.txt
 
 # -------------------------------------------------------------------------------------
@@ -206,6 +206,7 @@ jobs:
           paths:
             - "~/venv/bin"
             - "~/venv/lib"
+      - <<: *findtests
       - restore_cache:
           key: data-20200625-{{ checksum "teststorun.txt" }}
       - run:
@@ -599,23 +600,20 @@ workflows:
       - long_gpu_tests:
           requires:
             - cleaninstall_36
-            - unittests_38
+            - unittests_gpu14
             - unittests_37
-            - unittests_36
-            - unittests_osx
-            - mturk_tests
       - teacher_tests:
           requires:
             - cleaninstall_36
             - unittests_38
             - unittests_37
             - unittests_36
-            - unittests_osx
-            - mturk_tests
       - finalize_coverage_report:
           requires:
             - teacher_tests
             - long_gpu_tests
+            - mturk_tests
+            - unittests_osx
       - build_website:
           filters:
             branches:
