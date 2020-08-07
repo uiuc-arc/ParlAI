@@ -77,6 +77,9 @@ coveralls: &coveralls
     command: |
       export CIRCLE_BUILD_NUM=$CIRCLE_WORKFLOW_ID
       coveralls
+      echo
+      du -hcs ~/ParlAI/data
+      find ~/ParlAI/data
 
 installdeps: &installdeps
   run:
@@ -157,7 +160,9 @@ findtests: &findtests
   run:
     working_directory: ~/ParlAI
     name: Find tests to run
-    command: python -m pytest -m unit --collect-only | grep '<' > teststorun.txt
+    command: |
+      python -m pytest -m unit --collect-only | grep '<' | sort > teststorun.txt
+      cat teststorun.txt
 
 # -------------------------------------------------------------------------------------
 # Actual jobs
