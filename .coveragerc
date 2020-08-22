@@ -1,11 +1,3 @@
-# .coveragerc to control coverage.py
 [run]
-branch = True
-
-# make sure we report these folders
-source =
-    .
-
-# skip these files
-omit =
-    .eggs/*
+omit=
+	*/test_*
