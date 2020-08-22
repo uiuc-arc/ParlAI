@@ -156,6 +156,20 @@ class TestTransformerRanker(_AbstractTRATest):
             args[k] = v
         return args
 
+    @testing_utils.retry(ntries=3)
+    def test_eval_vocab(self):
+        args = self._get_args()
+        args['eval_candidates'] = 'vocab'
+        args['encode_candidate_vecs'] = True
+        args['batchsize']=16
+        args['learningrate']=8.922013905349969e-05
+        args['num_epochs']=1
+        valid, test = testing_utils.train_model(args)
+
+        # accuracy should be zero, none of the vocab candidates should be the
+        # correct label
+        self.assertEqual(valid['hits@100'], 0)
+
 
 class TestMemNN(_AbstractTRATest):
     def _get_args(self):
@@ -166,6 +180,61 @@ class TestMemNN(_AbstractTRATest):
     def _get_threshold(self):
         # this is a slightly worse model, so we expect it to perform worse
         return 0.5
+    
+    @testing_utils.retry(ntries=3)
+    def test_eval_vocab(self):
+        args = self._get_args()
+        args['eval_candidates'] = 'vocab'
+        args['encode_candidate_vecs'] = True
+        args['batchsize']=8
+        args['learningrate']=0.0001571048699659024
+        args['num_epochs']=1
+        valid, test = testing_utils.train_model(args)
+
+        # accuracy should be zero, none of the vocab candidates should be the
+        # correct label
+        self.assertEqual(valid['hits@100'], 0)
+
+        # test train inline cands
+    @testing_utils.retry(ntries=3)
+    def test_train_inline(self):
+        args = self._get_args()
+        args['candidates'] = 'inline'
+        args['batchsize']=16
+        args['learningrate']= 0.06548215791411556
+        args['num_epochs']=1
+        valid, test = testing_utils.train_model(args)
+        threshold = self._get_threshold()
+
+        self.assertGreaterEqual(valid['hits@1'], threshold)
+
+        
+    # test train fixed
+    @testing_utils.retry(ntries=3)
+    def test_train_fixed(self):
+        args = self._get_args()
+        args['batchsize']=16
+        args['learningrate']=0.42451399169718207
+        args['num_epochs']=1
+        args['candidates'] = 'fixed'
+        args['encode_candidate_vecs'] = False
+        valid, test = testing_utils.train_model(args)
+        threshold = self._get_threshold()
+
+        self.assertGreaterEqual(valid['hits@1'], threshold)
+
+    # test train batch all cands
+    @testing_utils.retry(ntries=3)
+    def test_train_batch_all(self):
+        args = self._get_args()
+        args['candidates'] = 'batch-all-cands'
+        args['batchsize']=32
+        args['learningrate']=0.5163092827220039
+        args['num_epochs']=1
+        valid, test = testing_utils.train_model(args)
+        threshold = self._get_threshold()
+
+        self.assertGreaterEqual(valid['hits@1'], threshold)
 
 
 class TestPolyRanker(_AbstractTRATest):
@@ -180,6 +249,86 @@ class TestPolyRanker(_AbstractTRATest):
 
     def _get_threshold(self):
         return 0.6
+
+    @testing_utils.retry(ntries=3)
+    def test_eval_vocab(self):
+        args = self._get_args()
+        args['eval_candidates'] = 'vocab'
+        args['encode_candidate_vecs'] = True
+        args['batchsize']=32
+        args['learningrate']=0.13153153870604523
+        args['num_epochs']=1
+        valid, test = testing_utils.train_model(args)
+
+        # accuracy should be zero, none of the vocab candidates should be the
+        # correct label
+        self.assertEqual(valid['hits@100'], 0)
+
+    # test eval batch ecands
+    @testing_utils.retry(ntries=3)
+    def test_eval_batch(self):
+        args = self._get_args()
+        args['eval_candidates'] = 'batch'
+        valid, test = testing_utils.train_model(args)
+        threshold = self._get_threshold()
+
+        args['batchsize']=16
+        args['learningrate']=0.020678484910529614,
+        args['num_epochs']=2
+
+
+        self.assertGreaterEqual(valid['hits@1'], threshold)
+
+    # test eval inline ecands
+    @testing_utils.retry(ntries=3)
+    def test_eval_inline(self):
+        args = self._get_args()
+        args['eval_candidates'] = 'inline'
+        valid, test = testing_utils.train_model(args)
+        threshold = self._get_threshold()
+        args['batchsize']=8
+        args['learningrate']=0.012524049301142625,
+        args['num_epochs']=1
+
+
+        self.assertGreaterEqual(valid['hits@1'], threshold)
+
+
+    # test eval fixed ecands        
+    @testing_utils.retry(ntries=3)
+    def test_eval_fixed(self):
+        args = self._get_args()
+        args['eval_candidates'] = 'fixed'
+        args['encode_candidate_vecs'] = True
+        args['ignore_bad_candidates'] = True
+        args['batchsize']=32
+        args['learningrate']=0.011273590316572237
+        args['num_epochs']=1
+
+        valid, test = testing_utils.train_model(args)
+
+        # none of the train candidates appear in evaluation, so should have
+        # zero accuracy: this tests whether the fixed candidates were built
+        # properly (i.e., only using candidates from the train set)
+        self.assertEqual(valid['hits@1'], 0)
+
+        # now try again with a fixed candidate file that includes all possible
+        # candidates
+        teacher = CandidateTeacher({'datatype': 'train'})
+        all_cands = teacher.train + teacher.val + teacher.test
+        all_cands_str = '\n'.join([' '.join(x) for x in all_cands])
+
+        with testing_utils.tempdir() as tmpdir:
+            tmp_cands_file = os.path.join(tmpdir, 'all_cands.text')
+            with open(tmp_cands_file, 'w') as f:
+                f.write(all_cands_str)
+            args['fixed_candidates_path'] = tmp_cands_file
+            args['encode_candidate_vecs'] = False  # don't encode before training
+            args['ignore_bad_candidates'] = False
+            args['num_epochs'] = 4
+            valid, test = testing_utils.train_model(args)
+            self.assertGreaterEqual(valid['hits@100'], 0.1)
+
 
     def test_eval_fixed_label_not_in_cands(self):
         # test where cands during eval do not contain test label

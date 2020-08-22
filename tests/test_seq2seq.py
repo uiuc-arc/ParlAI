@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#h!/usr/bin/env python3
 
 # Copyright (c) Facebook, Inc. and its affiliates.
 # This source code is licensed under the MIT license found in the
@@ -108,9 +108,9 @@ class TestHogwildSeq2seq(unittest.TestCase):
             dict(
                 task='integration_tests:multiturn_nocandidate',
                 model='seq2seq',
-                learningrate=LR,
-                batchsize=BATCH_SIZE,
-                num_epochs=NUM_EPOCHS * 2,
+                learningrate=1.0001558221237887,
+                batchsize=8,
+                num_epochs=2 * 2,
                 numthreads=2,
                 no_cuda=True,
                 embeddingsize=16,
